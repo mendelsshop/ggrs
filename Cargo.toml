@@ -33,6 +33,7 @@ structopt = "0.3"
 macroquad = { version = "0.4", features = ["log-rs"] }
 tracing-subscriber = "0.3"
 tracing-log = "0.2"
+proptest = { version = "1.6" }
 
 # Examples
 [[example]]

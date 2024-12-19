@@ -496,7 +496,10 @@ impl<T: Config> UdpProtocol<T> {
             // encode all pending inputs to a byte buffer
             body.bytes = encode(
                 &self.last_acked_input.bytes,
-                self.pending_output.iter().map(|gi| &gi.bytes),
+                self.pending_output
+                    .iter()
+                    .map(|gi| gi.bytes.as_slice())
+                    .collect(),
             );
             trace!(
                 "Encoded {} bytes from {} pending output(s) into {} bytes",
@@ -687,10 +690,14 @@ impl<T: Config> UdpProtocol<T> {
         };
 
         // if we have the necessary input saved, we decode
-        if let Some(decode_inp) = self.recv_inputs.get(&decode_frame) {
+        if let Some(recv_inputs) = self
+            .recv_inputs
+            .get(&decode_frame)
+            // silently drop invalid inputs (don't assert since we don't want to panic on input
+            // sent by malicious clients)
+            .and_then(|base| decode(&base.bytes, body.bytes.as_slice()).ok())
+        {
             self.running_last_input_recv = Instant::now();
-
-            let recv_inputs = decode(&decode_inp.bytes, &body.bytes).expect("decoding failed");
 
             for (i, inp) in recv_inputs.into_iter().enumerate() {
                 let inp_frame = body.start_frame + i as i32;
